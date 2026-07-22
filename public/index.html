@@ -135,6 +135,15 @@
     @media (max-width: 768px) { .btn-gold { grid-column: span 1; } }
     .btn-gold:hover { background: linear-gradient(135deg, #f39c12, #e67e22); }
 
+    .btn-action {
+      padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-authorize { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: var(--success-green); }
+    .btn-authorize:hover { background: var(--success-green); color: #fff; }
+    .btn-unauthorize { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: var(--error-red); }
+    .btn-unauthorize:hover { background: var(--error-red); color: #fff; }
+
     .wa-preview-container {
       background: var(--wa-bg);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -171,8 +180,8 @@
 
     .group-item {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 0.8rem 1rem; background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 0.5rem;
+      padding: 0.9rem 1rem; background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; margin-bottom: 0.6rem;
     }
   </style>
 </head>
@@ -183,7 +192,7 @@
         <div class="logo-icon"><i class="fa-solid fa-gamepad"></i></div>
         <div>
           <h1>Bot Patch Notes LoL, TFT, VALORANT & MTG</h1>
-          <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais da Riot & Wizards</div>
+          <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais & Tradução PT-BR</div>
         </div>
       </div>
       <div class="status-badge" id="statusBadge">
@@ -250,12 +259,12 @@
     </div>
 
     <div class="grid">
-      <!-- Grupos -->
+      <!-- Gerenciamento de Grupos -->
       <div class="card">
-        <div class="card-title"><i class="fa-solid fa-users-gear"></i> Grupos Autorizados</div>
+        <div class="card-title"><i class="fa-solid fa-users-gear"></i> Gerenciamento de Grupos (Autorizar / Desautorizar)</div>
         <div id="groupsList">
           <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Nenhum grupo cadastrado. Adicione o bot no grupo e envie <code>!iniciar</code> para autorizar.
+            Nenhum grupo detectado. Adicione o bot no grupo ou envie uma mensagem para detectar.
           </p>
         </div>
       </div>
@@ -325,22 +334,58 @@
         document.getElementById('lolPatch').innerText = state.lol.currentPatch || '26.14';
         document.getElementById('nextLolPatch').innerText = `${state.lol.nextPatch} (${state.lol.nextPatchDate || 'Quarta, 29/07'})`;
       }
-      if (state.allowedGroups && state.allowedGroups.length > 0) {
-        groupsList.innerHTML = state.allowedGroups.map(gid => {
+
+      const allowedSet = new Set(state.allowedGroups || []);
+      const allGroupJids = Array.from(new Set([
+        ...Object.keys(state.groupNames || {}),
+        ...(state.allowedGroups || [])
+      ]));
+
+      if (allGroupJids.length > 0) {
+        groupsList.innerHTML = allGroupJids.map(gid => {
           const gName = (state.groupNames && state.groupNames[gid]) ? state.groupNames[gid] : 'Grupo WhatsApp';
+          const isAllowed = allowedSet.has(gid);
+
           return `
             <div class="group-item">
               <div>
-                <i class="fa-solid fa-users" style="color: var(--primary-cyan); margin-right: 0.5rem;"></i>
-                <b style="font-size: 0.95rem; color: var(--text-main);">${gName}</b>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">ID: ${gid}</div>
+                <div style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.2rem;">
+                  <i class="fa-solid fa-users" style="color: var(--primary-cyan); margin-right: 0.4rem;"></i>
+                  ${gName}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">ID: ${gid}</div>
               </div>
-              <span style="color: var(--success-green); font-size: 0.8rem; font-weight: 600;">Autorizado</span>
+              <div>
+                ${isAllowed ? `
+                  <button class="btn-action btn-unauthorize" onclick="toggleGroupAuth('${gid}', false)">
+                    <i class="fa-solid fa-trash"></i> Desautorizar
+                  </button>
+                ` : `
+                  <button class="btn-action btn-authorize" onclick="toggleGroupAuth('${gid}', true)">
+                    <i class="fa-solid fa-circle-check"></i> Autorizar
+                  </button>
+                `}
+              </div>
             </div>
           `;
         }).join('');
+      } else {
+        groupsList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">Nenhum grupo detectado até o momento.</p>`;
       }
     });
+
+    async function toggleGroupAuth(groupJid, authorize) {
+      const endpoint = authorize ? '/api/groups/authorize' : '/api/groups/unauthorize';
+      try {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupJid })
+        });
+      } catch (err) {
+        alert('Erro ao alterar autorização do grupo: ' + err.message);
+      }
+    }
 
     async function triggerTest(type) {
       waBubbleContent.innerHTML = `⏳ <i>Carregando e buscando notas para ${type.toUpperCase()}...</i>`;

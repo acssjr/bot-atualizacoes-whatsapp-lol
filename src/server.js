@@ -69,6 +69,43 @@ export async function updateWebQr(qrString) {
   }
 }
 
+// REST API Endpoints para Gerenciamento de Grupos
+app.post('/api/groups/authorize', (req, res) => {
+  const { groupJid } = req.body;
+  if (!groupJid) return res.json({ success: false, message: 'JID inválido' });
+
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    if (!config.allowedGroups) config.allowedGroups = [];
+    if (!config.allowedGroups.includes(groupJid)) {
+      config.allowedGroups.push(groupJid);
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+      broadcastStateUpdate();
+      console.log(`[Web API] Grupo autorizado via painel: ${groupJid}`);
+    }
+    res.json({ success: true, message: 'Grupo autorizado com sucesso.' });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/groups/unauthorize', (req, res) => {
+  const { groupJid } = req.body;
+  if (!groupJid) return res.json({ success: false, message: 'JID inválido' });
+
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    if (!config.allowedGroups) config.allowedGroups = [];
+    config.allowedGroups = config.allowedGroups.filter(gid => gid !== groupJid);
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+    broadcastStateUpdate();
+    console.log(`[Web API] Grupo desautorizado via painel: ${groupJid}`);
+    res.json({ success: true, message: 'Grupo desautorizado com sucesso.' });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
 // REST API Endpoints para Prévia Visual no Balão do WhatsApp
 app.post('/api/preview/lol', async (req, res) => {
   const articles = await fetchRiotNews();
@@ -168,7 +205,7 @@ app.post('/api/trigger-cron', async (req, res) => {
 export function startWebServer() {
   httpServer.listen(PORT, () => {
     console.log(`\n==================================================`);
-    console.log(`🌐 DASHBOARD WEB DISPONÍVEL EM: http://localhost:${PORT}`);
+    console.log(`🌐 DASHBOARD WEB DISPONÍVEL EM: http://localhost:3000`);
     console.log(`==================================================\n`);
   });
 }

@@ -11,7 +11,6 @@ const CONFIG_FILE = path.resolve('config.json');
 export function extractMessageText(msg) {
   if (!msg || !msg.message) return '';
 
-  // Suporte a Mensagens Temporárias (Ephemeral), Mídias com Legenda e Respostas
   const m = msg.message.ephemeralMessage?.message || msg.message;
 
   return m.conversation || 
@@ -22,20 +21,16 @@ export function extractMessageText(msg) {
          '';
 }
 
-export async function updateAllowedGroups(sock, groupJid) {
+/**
+ * Registra ou atualiza os metadados do grupo (nome real) SEM autorizar automaticamente.
+ */
+export async function registerGroupMetadata(sock, groupJid) {
   try {
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
-    if (!config.allowedGroups) config.allowedGroups = [];
     if (!config.groupNames) config.groupNames = {};
 
     let nameUpdated = false;
 
-    if (!config.allowedGroups.includes(groupJid)) {
-      config.allowedGroups.push(groupJid);
-      nameUpdated = true;
-    }
-
-    // Tenta buscar o nome/assunto do grupo no WhatsApp
     try {
       if (sock && (!config.groupNames[groupJid] || config.groupNames[groupJid] === 'Grupo WhatsApp')) {
         const metadata = await sock.groupMetadata(groupJid);
@@ -44,17 +39,50 @@ export async function updateAllowedGroups(sock, groupJid) {
           nameUpdated = true;
         }
       }
-    } catch (err) {
-      // Ignora falha de metadata se o grupo for privado/restrito
-    }
+    } catch (err) {}
 
     if (nameUpdated) {
       fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-      console.log(`[WhatsApp] Grupo autorizado/atualizado no dashboard: ${config.groupNames[groupJid] || groupJid}`);
       broadcastStateUpdate();
     }
   } catch (err) {
-    console.error('[WhatsApp] Erro ao salvar grupo no config:', err.message);
+    console.error('[WhatsApp] Erro ao registrar metadados do grupo:', err.message);
+  }
+}
+
+/**
+ * Autoriza um grupo explicitamente (chamado via comando !iniciar ou no Painel Web).
+ */
+export async function updateAllowedGroups(sock, groupJid) {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    if (!config.allowedGroups) config.allowedGroups = [];
+    if (!config.groupNames) config.groupNames = {};
+
+    let updated = false;
+
+    if (!config.allowedGroups.includes(groupJid)) {
+      config.allowedGroups.push(groupJid);
+      updated = true;
+    }
+
+    try {
+      if (sock && (!config.groupNames[groupJid] || config.groupNames[groupJid] === 'Grupo WhatsApp')) {
+        const metadata = await sock.groupMetadata(groupJid);
+        if (metadata && metadata.subject) {
+          config.groupNames[groupJid] = metadata.subject;
+          updated = true;
+        }
+      }
+    } catch (err) {}
+
+    if (updated) {
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+      console.log(`[WhatsApp] Grupo autorizado no dashboard: ${config.groupNames[groupJid] || groupJid}`);
+      broadcastStateUpdate();
+    }
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao autorizar grupo no config:', err.message);
   }
 }
 
@@ -62,16 +90,11 @@ export async function syncParticipatingGroups(sock) {
   try {
     const participatingGroups = await sock.groupFetchAllParticipating();
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
-    if (!config.allowedGroups) config.allowedGroups = [];
     if (!config.groupNames) config.groupNames = {};
 
     let updated = false;
 
     for (const [gJid, gMeta] of Object.entries(participatingGroups)) {
-      if (!config.allowedGroups.includes(gJid)) {
-        config.allowedGroups.push(gJid);
-        updated = true;
-      }
       if (gMeta && gMeta.subject && config.groupNames[gJid] !== gMeta.subject) {
         config.groupNames[gJid] = gMeta.subject;
         updated = true;
@@ -80,7 +103,7 @@ export async function syncParticipatingGroups(sock) {
 
     if (updated) {
       fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-      console.log(`[WhatsApp] Sincronizados ${Object.keys(participatingGroups).length} grupos participantes no dashboard.`);
+      console.log(`[WhatsApp] Nomes de ${Object.keys(participatingGroups).length} grupos sincronizados no dashboard.`);
       broadcastStateUpdate();
     }
   } catch (err) {
@@ -135,7 +158,6 @@ export async function connectToWhatsApp() {
       updateWebStatus(true, 'Conectado ao WhatsApp');
       startCronService(sock);
 
-      // Sincroniza automaticamente todos os grupos onde o bot está presente
       setTimeout(() => syncParticipatingGroups(sock), 3000);
     }
   });
@@ -150,7 +172,7 @@ export async function connectToWhatsApp() {
       const text = extractMessageText(msg).trim();
 
       if (remoteJid.endsWith('@g.us')) {
-        await updateAllowedGroups(sock, remoteJid);
+        await registerGroupMetadata(sock, remoteJid);
       }
 
       if (text.startsWith('!')) {

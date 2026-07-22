@@ -1,5 +1,7 @@
+import axios from 'axios';
+
 /**
- * Serviço de Tradução e Adaptação Contextual para Termos de League of Legends e TFT em PT-BR.
+ * Serviço de Tradução e Adaptação Contextual para Termos de League of Legends, TFT e MTG Arena em PT-BR.
  */
 
 const DICTIONARY = [
@@ -25,6 +27,41 @@ export function translateGamerTerms(text = '') {
   }
 
   return result;
+}
+
+/**
+ * Traduz textos em inglês do MTG Arena para Português do Brasil com adaptação gamer.
+ * @param {string} text 
+ * @returns {Promise<string>} Texto traduzido
+ */
+export async function translateTextToPtBr(text = '') {
+  if (!text || text.trim().length === 0) return '';
+
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=pt&dt=t&q=${encodeURIComponent(text)}`;
+    const { data } = await axios.get(url, { timeout: 8000 });
+    if (data && data[0]) {
+      let translated = data[0].map(item => item[0]).join('');
+      
+      // Ajustes contextuais de termos gamer do MTG Arena no Brasil
+      translated = translated
+        .replace(/Magia: A Reunião/gi, 'Magic: The Gathering')
+        .replace(/pré-encomenda/gi, 'Pré-venda')
+        .replace(/Pacote de Pacotes/gi, 'Pacote de Boosters')
+        .replace(/Pacote de Jogos/gi, 'Pacote de Jogo')
+        .replace(/Pacote Pass/gi, 'Pacote de Passe')
+        .replace(/cartão/gi, 'carta')
+        .replace(/cartões/gi, 'cartas')
+        .replace(/estilo de cartão/gi, 'estilo de carta')
+        .replace(/estilos de cartão/gi, 'estilos de carta');
+
+      return translated;
+    }
+  } catch (err) {
+    console.error('[Translator] Erro na API de tradução:', err.message);
+  }
+
+  return text;
 }
 
 /**
