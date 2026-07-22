@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { cleanPlayfulText } from './patchCurator.js';
+import { fetchMtgNews } from '../services/riotScraper.js';
 
 /**
  * Raspa o conteúdo completo da página de notas de patch oficial da Riot PT-BR (LoL ou TFT).
@@ -455,6 +456,100 @@ export async function fetchValorantPatchSummary(patchUrl) {
       formattedMessage: `🎯 *NOTAS DA ATUALIZAÇÃO DO VALORANT*\n\n🔗 *Confira as notas completas no site oficial:* ${patchUrl}`,
       imageUrl: '',
       url: patchUrl
+    };
+  }
+}
+
+/**
+ * Raspa e converte notas de patch do Magic: The Gathering Arena (mtgarena-support.wizards.com)
+ *
+ * @param {string} targetUrl 
+ * @returns {Promise<{ formattedMessage: string, imageUrl: string, url: string }>}
+ */
+export async function fetchMtgPatchSummary(targetUrl = '') {
+  try {
+    const articles = await fetchMtgNews();
+    let targetArticle = articles.find(a => a.url.toLowerCase() === targetUrl.toLowerCase()) || articles[0];
+
+    if (!targetArticle) {
+      return {
+        formattedMessage: `🃏 *NOTAS DA ATUALIZAÇÃO DO MAGIC: THE GATHERING ARENA* (Beta — Pode conter bugs)\n\n🔗 *Confira as notas completas no site oficial:* ${targetUrl || 'https://mtgarena-support.wizards.com/hc/en-us/sections/4402585813268-Patch-Notes'}`,
+        imageUrl: '',
+        url: targetUrl || 'https://mtgarena-support.wizards.com/hc/en-us/sections/4402585813268-Patch-Notes'
+      };
+    }
+
+    const $ = cheerio.load(targetArticle.body || '');
+    const title = targetArticle.title || 'Patch Notes MTG Arena';
+
+    let imageUrl = '';
+    $('img').each((i, el) => {
+      const src = $(el).attr('src') || $(el).attr('data-src') || '';
+      if (src && src.startsWith('http') && !imageUrl) {
+        imageUrl = src;
+      }
+    });
+
+    const highlights = [];
+    const bugFixes = [];
+    const generalChanges = [];
+
+    let currentSection = '';
+
+    $('h1, h2, h3, h4, p, ul li').each((i, el) => {
+      const tag = $(el).prop('tagName').toLowerCase();
+      const text = cleanPlayfulText($(el).text().trim());
+      if (!text) return;
+
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4') {
+        const tLower = text.toLowerCase();
+        if (tLower.includes('highlight') || tLower.includes('destaques') || tLower.includes('feature')) {
+          currentSection = 'highlights';
+        } else if (tLower.includes('bug') || tLower.includes('fix') || tLower.includes('correções')) {
+          currentSection = 'bugs';
+        } else {
+          currentSection = 'general';
+        }
+      } else if (tag === 'li' || tag === 'p') {
+        if (text.length > 4) {
+          if (currentSection === 'highlights') {
+            highlights.push(`• ${text}`);
+          } else if (currentSection === 'bugs') {
+            bugFixes.push(`• ${text}`);
+          } else if (currentSection === 'general') {
+            generalChanges.push(`• ${text}`);
+          }
+        }
+      }
+    });
+
+    let msg = `🃏 *${cleanPlayfulText(title).toUpperCase()}* (Beta — Pode conter bugs)\n\n`;
+
+    if (highlights.length > 0) {
+      msg += `✨ *DESTAQUES DA ATUALIZAÇÃO:*\n\n` + highlights.slice(0, 8).join('\n\n') + `\n\n`;
+    }
+
+    if (generalChanges.length > 0 && highlights.length === 0) {
+      msg += `📜 *ALTERAÇÕES & NOVIDADES:*\n\n` + generalChanges.slice(0, 8).join('\n\n') + `\n\n`;
+    }
+
+    if (bugFixes.length > 0) {
+      msg += `🐛 *CORREÇÕES DE BUGS:*\n\n` + bugFixes.slice(0, 8).join('\n\n') + `\n\n`;
+    }
+
+    msg += `🔗 *Confira as notas completas no site oficial:* ${targetArticle.url}`;
+
+    return {
+      formattedMessage: msg,
+      imageUrl,
+      url: targetArticle.url
+    };
+  } catch (err) {
+    console.error('[PatchFormatter] Erro ao raspar MTG Arena:', err.message);
+    return {
+      formattedMessage: `🃏 *NOTAS DA ATUALIZAÇÃO DO MAGIC: THE GATHERING ARENA* (Beta — Pode conter bugs)\n\n🔗 *Confira as notas completas no site oficial:* ${targetUrl}`,
+      imageUrl: '',
+      url: targetUrl
     };
   }
 }

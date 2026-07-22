@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Bot - LoL, TFT & VALORANT Patch Notes WhatsApp</title>
+  <title>Dashboard Bot - LoL, TFT, VALORANT & MTG Arena</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -18,6 +18,7 @@
       --primary-blue: #3a7bd5;
       --gold-accent: #f39c12;
       --val-red: #ff4655;
+      --mtg-purple: #9b59b6;
       --text-main: #f0f4f8;
       --text-muted: #94a3b8;
       --success-green: #10b981;
@@ -123,9 +124,13 @@
       transition: all 0.2s ease; font-family: 'Inter', sans-serif;
     }
     .btn:hover { background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue)); transform: translateY(-2px); }
+    
     .btn-val { background: linear-gradient(135deg, rgba(255, 70, 85, 0.2), rgba(180, 20, 40, 0.2)); border-color: rgba(255, 70, 85, 0.4); }
     .btn-val:hover { background: linear-gradient(135deg, #ff4655, #d63031); }
-    
+
+    .btn-mtg { background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.2)); border-color: rgba(155, 89, 182, 0.4); }
+    .btn-mtg:hover { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
     .btn-gold { background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(211, 84, 0, 0.2)); border-color: rgba(243, 156, 18, 0.4); grid-column: span 4; margin-top: 0.4rem; }
     @media (max-width: 768px) { .btn-gold { grid-column: span 1; } }
     .btn-gold:hover { background: linear-gradient(135deg, #f39c12, #e67e22); }
@@ -177,8 +182,8 @@
       <div class="logo-area">
         <div class="logo-icon"><i class="fa-solid fa-gamepad"></i></div>
         <div>
-          <h1>Bot Patch Notes LoL, TFT & VALORANT</h1>
-          <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais da Riot</div>
+          <h1>Bot Patch Notes LoL, TFT, VALORANT & MTG</h1>
+          <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais da Riot & Wizards</div>
         </div>
       </div>
       <div class="status-badge" id="statusBadge">
@@ -210,12 +215,12 @@
             <div class="stat-value" id="nextLolPatch" style="color: var(--primary-cyan);">26.15 (Quarta, 29/07)</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">TFT - Patch Atual</div>
-            <div class="stat-value" id="tftSet">17.7</div>
-          </div>
-          <div class="stat-box">
             <div class="stat-label">VALORANT Patch</div>
             <div class="stat-value" style="color: var(--val-red);">13.01</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">MTG Arena Patch</div>
+            <div class="stat-value" style="color: var(--mtg-purple);">2026.61.30</div>
           </div>
         </div>
 
@@ -226,6 +231,7 @@
             <button class="btn" onclick="triggerTest('ad')"><i class="fa-solid fa-fire"></i> Testar !ad</button>
             <button class="btn" onclick="triggerTest('tft')"><i class="fa-solid fa-dice"></i> Testar TFT</button>
             <button class="btn btn-val" onclick="triggerTest('valorant')"><i class="fa-solid fa-crosshair"></i> Testar !vava</button>
+            <button class="btn btn-mtg" onclick="triggerTest('mtg')"><i class="fa-solid fa-hat-wizard"></i> Testar !mtg (Beta)</button>
             <button class="btn btn-gold" onclick="triggerCron()"><i class="fa-solid fa-paper-plane"></i> Disparar Transmissão para Grupos</button>
           </div>
         </div>
@@ -238,7 +244,7 @@
       
       <div class="wa-preview-container" id="waPreviewBox">
         <div class="wa-bubble" id="waBubbleContent">
-📌 <b>Clique em um dos botões de teste acima</b> (Testar LoL, !ad, TFT ou !vava) para gerar a prévia visual formatada com a imagem infográfico de Destaques e o link completo no rodapé!
+📌 <b>Clique em um dos botões de teste acima</b> (Testar LoL, !ad, TFT, !vava ou !mtg) para gerar a prévia visual formatada com a imagem infográfico de Destaques e o link completo no rodapé!
         </div>
       </div>
     </div>
@@ -260,6 +266,7 @@
         <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
           • <b>!iniciar</b>: Autoriza o grupo com mensagem de boas-vindas.<br>
           • <b>!patch / !lol</b>: Infográfico de Destaques + Mudanças no LoL + Link Oficial.<br>
+          • <b>!mtg / !magic</b>: Notas do MTG Arena <i>(Beta — Pode conter bugs)</i> + Link Oficial.<br>
           • <b>!vava / !valorant</b>: Infográfico + Agentes, Armas e Bugs do VALORANT + Link Oficial.<br>
           • <b>!ad</b>: Exclusivo para o modo <b>ARAM: DESORDEM</b> + Link Oficial.<br>
           • <b>!tft</b>: Infográfico de Destaques + Mudanças no TFT + Link Oficial.<br>
@@ -318,9 +325,6 @@
         document.getElementById('lolPatch').innerText = state.lol.currentPatch || '26.14';
         document.getElementById('nextLolPatch').innerText = `${state.lol.nextPatch} (${state.lol.nextPatchDate || 'Quarta, 29/07'})`;
       }
-      if (state.tft) {
-        document.getElementById('tftSet').innerText = state.tft.currentPatch || '17.7';
-      }
       if (state.allowedGroups && state.allowedGroups.length > 0) {
         groupsList.innerHTML = state.allowedGroups.map(gid => {
           const gName = (state.groupNames && state.groupNames[gid]) ? state.groupNames[gid] : 'Grupo WhatsApp';
@@ -339,7 +343,7 @@
     });
 
     async function triggerTest(type) {
-      waBubbleContent.innerHTML = `⏳ <i>Carregando e buscando infográfico para ${type.toUpperCase()}...</i>`;
+      waBubbleContent.innerHTML = `⏳ <i>Carregando e buscando notas para ${type.toUpperCase()}...</i>`;
       try {
         const res = await fetch(`/api/preview/${type}`, { method: 'POST' });
         const data = await res.json();

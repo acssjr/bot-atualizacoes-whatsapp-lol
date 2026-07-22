@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
-import { fetchRiotNews, fetchTftNews, fetchValorantNews } from './riotScraper.js';
-import { fetchFullPatchSummary, fetchValorantPatchSummary } from '../utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews } from './riotScraper.js';
+import { fetchFullPatchSummary, fetchValorantPatchSummary, fetchMtgPatchSummary } from '../utils/patchFormatter.js';
 
 const CONFIG_FILE = path.resolve('config.json');
 const STATE_FILE = path.resolve('state.json');
@@ -25,7 +25,6 @@ function loadState() {
   try {
     const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
     if (!data.sentArticles) data.sentArticles = [];
-    // Normaliza todos os IDs salvos
     data.sentArticles = data.sentArticles.map(normalizeUrl);
     return data;
   } catch {
@@ -35,7 +34,6 @@ function loadState() {
 
 function saveState(state) {
   try {
-    // Garante IDs únicos e normalizados
     state.sentArticles = Array.from(new Set(state.sentArticles.map(normalizeUrl)));
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
   } catch (err) {
@@ -57,8 +55,9 @@ export async function seedInitialArticles() {
     const lolArticles = await fetchRiotNews();
     const tftArticles = await fetchTftNews();
     const valArticles = await fetchValorantNews();
+    const mtgArticles = await fetchMtgNews();
 
-    [...lolArticles, ...tftArticles, ...valArticles].forEach(article => {
+    [...lolArticles, ...tftArticles, ...valArticles, ...mtgArticles].forEach(article => {
       const normId = normalizeUrl(article.url || article.id);
       if (normId && !sentSet.has(normId)) {
         sentSet.add(normId);
@@ -76,6 +75,25 @@ export async function seedInitialArticles() {
   }
 }
 
+/**
+ * Dispara uma notificação de transmissão sobre novas adições aos grupos autorizados.
+ */
+export async function broadcastNewFeatureNotice(featureDescription) {
+  const config = loadConfig();
+  if (!config.allowedGroups || config.allowedGroups.length === 0 || !activeSocket) return;
+
+  const notice = `🎉 *NOVA FUNCIONALIDADE ADICIONADA!* 🎉\n\n` +
+                 `• *${featureDescription}* *(Beta — Pode conter bugs)*\n\n` +
+                 `📌 Digite *!ajuda* a qualquer momento para conferir todos os comandos ativos!`;
+
+  for (const groupJid of config.allowedGroups) {
+    try {
+      await activeSocket.sendMessage(groupJid, { text: notice });
+      await delay(2000);
+    } catch (e) {}
+  }
+}
+
 export async function checkAndSendUpdates() {
   const config = loadConfig();
   if (!config.autoNotifyGroups || !config.allowedGroups || config.allowedGroups.length === 0) {
@@ -86,7 +104,7 @@ export async function checkAndSendUpdates() {
     return 'WhatsApp não conectado no momento.';
   }
 
-  console.log('[Cron] Verificando novas matérias oficiais (LoL, TFT e Valorant)...');
+  console.log('[Cron] Verificando novas matérias oficiais (LoL, TFT, Valorant e MTG Arena)...');
   const state = loadState();
   const sentSet = new Set(state.sentArticles.map(normalizeUrl));
   let sentCount = 0;
@@ -184,6 +202,37 @@ export async function checkAndSendUpdates() {
     }
   }
 
+  // 4. Apenas a ÚLTIMA matéria oficial do Magic: The Gathering Arena
+  const mtgArticles = await fetchMtgNews();
+  if (mtgArticles.length > 0) {
+    const latestMtg = mtgArticles[0];
+    const normId = normalizeUrl(latestMtg.url || latestMtg.id);
+
+    if (!sentSet.has(normId)) {
+      console.log(`[Cron] Nova atualização do MTG Arena detectada: ${latestMtg.title}`);
+      const mtgData = await fetchMtgPatchSummary(latestMtg.url);
+
+      for (const groupJid of config.allowedGroups) {
+        try {
+          if (mtgData.imageUrl) {
+            await activeSocket.sendMessage(groupJid, {
+              image: { url: mtgData.imageUrl },
+              caption: mtgData.formattedMessage
+            });
+          } else {
+            await activeSocket.sendMessage(groupJid, { text: mtgData.formattedMessage });
+          }
+          sentCount++;
+          await delay(3000);
+        } catch (err) {
+          console.error(`[Cron] Erro ao enviar MTG Arena para grupo ${groupJid}:`, err.message);
+        }
+      }
+
+      sentSet.add(normId);
+    }
+  }
+
   state.sentArticles = Array.from(sentSet);
   saveState(state);
 
@@ -194,9 +243,8 @@ export async function checkAndSendUpdates() {
 
 export function startCronService(sock) {
   activeSocket = sock;
-  console.log('[Cron] Monitoramento iniciado (LoL, TFT, Valorant e ARAM Desordem).');
+  console.log('[Cron] Monitoramento iniciado (LoL, TFT, Valorant, MTG Arena e ARAM Desordem).');
 
-  // Popula o cache com os artigos já publicados ao subir o bot
   seedInitialArticles();
 
   cron.schedule('*/30 * * * *', async () => {

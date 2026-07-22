@@ -5,6 +5,7 @@ import { isRelevantGameplayContent } from '../utils/contentFilter.js';
 const RIOT_NEWS_URL = 'https://www.leagueoflegends.com/pt-br/news/game-updates/';
 const TFT_NEWS_URL = 'https://teamfighttactics.leagueoflegends.com/pt-br/news/game-updates/';
 const VALORANT_NEWS_URL = 'https://playvalorant.com/pt-br/news/game-updates/';
+const MTG_API_URL = 'https://mtgarena-support.wizards.com/api/v2/help_center/en-us/sections/4402585813268/articles.json';
 
 /**
  * Raspa matérias de atualizações do League of Legends.
@@ -117,6 +118,40 @@ export async function fetchValorantNews() {
     return articles;
   } catch (err) {
     console.error('[RiotScraper] Erro ao raspar notícias do VALORANT:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Busca notícias de Patch Notes do Magic: The Gathering Arena via Zendesk REST API.
+ */
+export async function fetchMtgNews() {
+  try {
+    const { data } = await axios.get(MTG_API_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    const articles = [];
+    if (data.articles && data.articles.length > 0) {
+      data.articles.forEach(art => {
+        articles.push({
+          id: art.html_url,
+          title: art.title,
+          url: art.html_url,
+          body: art.body,
+          createdAt: art.created_at,
+          source: 'MTG Arena'
+        });
+      });
+    }
+
+    return articles;
+  } catch (err) {
+    console.error('[RiotScraper] Erro ao buscar API do MTG Arena:', err.message);
     return [];
   }
 }

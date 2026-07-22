@@ -4,8 +4,8 @@ import { Server } from 'socket.io';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
-import { fetchRiotNews, fetchTftNews, fetchValorantNews, getNextAndCurrentPatch } from './services/riotScraper.js';
-import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary } from './utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews, getNextAndCurrentPatch } from './services/riotScraper.js';
+import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary, fetchMtgPatchSummary } from './utils/patchFormatter.js';
 import { runManualCronCheck } from './services/cronService.js';
 
 const app = express();
@@ -134,6 +134,23 @@ app.post('/api/preview/valorant', async (req, res) => {
   } else {
     res.json({
       formattedMessage: `🎯 *VALORANT - NOTAS DE ATUALIZAÇÃO*\n\nConfira as atualizações no site oficial do VALORANT!`,
+      imageUrl: ''
+    });
+  }
+});
+
+app.post('/api/preview/mtg', async (req, res) => {
+  const mtgArticles = await fetchMtgNews();
+
+  if (mtgArticles.length > 0) {
+    const mtgData = await fetchMtgPatchSummary(mtgArticles[0].url);
+    res.json({
+      formattedMessage: mtgData.formattedMessage || '',
+      imageUrl: mtgData.imageUrl || ''
+    });
+  } else {
+    res.json({
+      formattedMessage: `🃏 *MAGIC: THE GATHERING ARENA - NOTAS DA ATUALIZAÇÃO* (Beta — Pode conter bugs)\n\nConfira as atualizações no site oficial do MTG Arena!`,
       imageUrl: ''
     });
   }

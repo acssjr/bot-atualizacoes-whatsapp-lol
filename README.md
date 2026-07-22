@@ -1,16 +1,16 @@
 <div align="center">
 
-# ⚔️ Bot de WhatsApp - Patch Notes LoL, TFT, VALORANT & ARAM Desordem 🎲
+# ⚔️ Bot de WhatsApp - Patch Notes LoL, TFT, VALORANT, MTG & ARAM Desordem 🃏
 
   <p align="center">
-    <strong>Bot inteligente para WhatsApp com envio automático de notas de atualização oficiais do League of Legends, Teamfight Tactics e VALORANT em PT-BR, acompanhadas de Infográficos de Destaques e Links Oficiais.</strong>
+    <strong>Bot inteligente para WhatsApp com envio automático de notas de atualização oficiais do League of Legends, Teamfight Tactics, VALORANT e Magic: The Gathering Arena em PT-BR, acompanhadas de Infográficos de Destaques e Links Oficiais.</strong>
   </p>
 
   <p align="center">
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-v18%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js"></a>
     <a href="https://github.com/whiskeysockets/baileys"><img src="https://img.shields.io/badge/WhatsApp-Baileys%20v2-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Baileys WhatsApp"></a>
     <a href="https://expressjs.com"><img src="https://img.shields.io/badge/Express-Dashboard-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express Dashboard"></a>
-    <a href="https://playvalorant.com"><img src="https://img.shields.io/badge/VALORANT-Oficial%20PT--BR-ff4655?style=for-the-badge&logo=valorant&logoColor=white" alt="VALORANT PT-BR"></a>
+    <a href="https://mtgarena-support.wizards.com"><img src="https://img.shields.io/badge/MTG%20Arena-Oficial%20Zendesk-9b59b6?style=for-the-badge&logo=magic&logoColor=white" alt="MTG Arena"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.style=for-the-badge" alt="License MIT"></a>
   </p>
 </div>
@@ -19,14 +19,15 @@
 
 ## 📌 Sobre o Projeto
 
-Este bot foi desenvolvido para comunidade e grupos de **League of Legends**, **Teamfight Tactics** e **VALORANT**. Ele monitora os portais oficiais da **Riot Games Brasil**, raspa os artigos completos de atualização, realiza a curadoria técnica dos dados (removendo textos introdutórios e piadas) e formata a mensagem para leitura clara no WhatsApp.
+Este bot foi desenvolvido para comunidade e grupos de **League of Legends**, **Teamfight Tactics**, **VALORANT** e **Magic: The Gathering Arena**. Ele monitora os portais oficiais da **Riot Games Brasil** e **Wizards of the Coast**, raspa os artigos completos de atualização, realiza a curadoria técnica dos dados (removendo textos introdutórios e piadas) e formata a mensagem para leitura clara no WhatsApp.
 
-Além do texto legível com emojis e separadores organizados, o bot anexa a **imagem infográfica oficial de Destaques da Atualização** (LoL, TFT e VALORANT) e adiciona o **link oficial do site no rodapé**.
+Além do texto legível com emojis e separadores organizados, o bot anexa as **imagens infográficas oficiais de Destaques da Atualização** e adiciona o **link oficial do site no rodapé**.
 
 ---
 
 ## ✨ Principais Recursos
 
+- 🃏 **Suporte Oficial ao MTG Arena (`!mtg` / `!magic`)** *(Beta — Pode conter bugs)*: Integração direta via API REST do Zendesk para extração de Destaques de Eventos, Pacotes, Coleções e Correções de Bugs do Magic: The Gathering Arena.
 - 🖼️ **Infográficos Oficiais da Riot**: Envia a imagem em alta resolução de Destaques da Atualização (`1920x1080` no LoL e VALORANT, `3067x1726` no TFT) como anexo de imagem no WhatsApp com a legenda formatada.
 - 🎯 **Suporte Oficial ao VALORANT (`!vava` / `!valorant`)**: Raspa atualizações de Agentes (com Habilidades), Armas, Sistemas e Correções de Bugs do VALORANT.
 - 🎯 **Curadoria & Leitura Completa das Habilidades**: Extrai o nome exato da habilidade (ex: `🎯 E – Aperto Mortal` ou `🎯 Fluxo Protetor`) e a transição exata das estatísticas (`15s >>> 20s`).
@@ -46,6 +47,7 @@ Todos os comandos devem ser enviados nos grupos autorizados ou no privado do bot
 | :--- | :--- | :--- |
 | **`!iniciar`** (ou `!inciar`) | Autoriza o grupo atual a receber notificações automáticas. | 🤖 Mensagem de Boas-Vindas |
 | **`!patch`** / **`!lol`** | Exibe as notas completas de atualização do League of Legends. | 🖼️ Infográfico + 🔗 Link Oficial |
+| **`!mtg`** / **`!magic`** | Exibe as notas de atualização do **Magic: The Gathering Arena** *(Beta — Pode conter bugs)*. | 🃏 Destaques + 🔗 Link Oficial |
 | **`!vava`** / **`!valorant`** | Exibe as notas completas de atualização do **VALORANT**. | 🖼️ Infográfico + 🔗 Link Oficial |
 | **`!ad`** / **`!desordem`** | Exibe as mudanças exclusivas do modo **ARAM: DESORDEM**. | 🔗 Link Oficial |
 | **`!tft`** | Exibe as notas completas de atualização do Teamfight Tactics. | 🖼️ Infográfico TFT + 🔗 Link Oficial |
@@ -90,5 +92,5 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 ---
 
 <div align="center">
-  <sub>Desenvolvido com ❤️ para a comunidade de League of Legends, TFT & VALORANT Brasil.</sub>
+  <sub>Desenvolvido com ❤️ para a comunidade de League of Legends, TFT, VALORANT & MTG Arena.</sub>
 </div>
