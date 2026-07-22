@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
-import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews } from './riotScraper.js';
-import { fetchFullPatchSummary, fetchValorantPatchSummary, fetchMtgPatchSummary } from '../utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews, fetchCs2News } from './riotScraper.js';
+import { fetchFullPatchSummary, fetchValorantPatchSummary, fetchMtgPatchSummary, fetchCs2PatchSummary } from '../utils/patchFormatter.js';
 
 const CONFIG_FILE = path.resolve('config.json');
 const STATE_FILE = path.resolve('state.json');
@@ -56,8 +56,9 @@ export async function seedInitialArticles() {
     const tftArticles = await fetchTftNews();
     const valArticles = await fetchValorantNews();
     const mtgArticles = await fetchMtgNews();
+    const cs2Articles = await fetchCs2News();
 
-    [...lolArticles, ...tftArticles, ...valArticles, ...mtgArticles].forEach(article => {
+    [...lolArticles, ...tftArticles, ...valArticles, ...mtgArticles, ...cs2Articles].forEach(article => {
       const normId = normalizeUrl(article.url || article.id);
       if (normId && !sentSet.has(normId)) {
         sentSet.add(normId);
@@ -88,7 +89,8 @@ export async function broadcastNewFeatureNotice(featureDescription) {
 
   for (const groupJid of config.allowedGroups) {
     try {
-      await activeSocket.sendMessage(groupJid, { text: notice });
+      const gName = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+      await activeSocket.sendMessage(groupJid, { text: gName + notice });
       await delay(2000);
     } catch (e) {}
   }
@@ -104,7 +106,7 @@ export async function checkAndSendUpdates() {
     return 'WhatsApp não conectado no momento.';
   }
 
-  console.log('[Cron] Verificando novas matérias oficiais (LoL, TFT, Valorant e MTG Arena)...');
+  console.log('[Cron] Verificando novas matérias oficiais (LoL, TFT, Valorant, MTG Arena e CS2)...');
   const state = loadState();
   const sentSet = new Set(state.sentArticles.map(normalizeUrl));
   let sentCount = 0;
@@ -121,13 +123,16 @@ export async function checkAndSendUpdates() {
 
       for (const groupJid of config.allowedGroups) {
         try {
+          const gHeader = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+          const fullMessage = gHeader + patchData.formattedMessage;
+
           if (patchData.imageUrl) {
             await activeSocket.sendMessage(groupJid, {
               image: { url: patchData.imageUrl },
-              caption: patchData.formattedMessage
+              caption: fullMessage
             });
           } else {
-            await activeSocket.sendMessage(groupJid, { text: patchData.formattedMessage });
+            await activeSocket.sendMessage(groupJid, { text: fullMessage });
           }
           sentCount++;
           await delay(3000);
@@ -152,13 +157,16 @@ export async function checkAndSendUpdates() {
 
       for (const groupJid of config.allowedGroups) {
         try {
+          const gHeader = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+          const fullMessage = gHeader + tftData.formattedMessage;
+
           if (tftData.imageUrl) {
             await activeSocket.sendMessage(groupJid, {
               image: { url: tftData.imageUrl },
-              caption: tftData.formattedMessage
+              caption: fullMessage
             });
           } else {
-            await activeSocket.sendMessage(groupJid, { text: tftData.formattedMessage });
+            await activeSocket.sendMessage(groupJid, { text: fullMessage });
           }
           sentCount++;
           await delay(3000);
@@ -183,13 +191,16 @@ export async function checkAndSendUpdates() {
 
       for (const groupJid of config.allowedGroups) {
         try {
+          const gHeader = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+          const fullMessage = gHeader + valData.formattedMessage;
+
           if (valData.imageUrl) {
             await activeSocket.sendMessage(groupJid, {
               image: { url: valData.imageUrl },
-              caption: valData.formattedMessage
+              caption: fullMessage
             });
           } else {
-            await activeSocket.sendMessage(groupJid, { text: valData.formattedMessage });
+            await activeSocket.sendMessage(groupJid, { text: fullMessage });
           }
           sentCount++;
           await delay(3000);
@@ -214,18 +225,55 @@ export async function checkAndSendUpdates() {
 
       for (const groupJid of config.allowedGroups) {
         try {
+          const gHeader = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+          const fullMessage = gHeader + mtgData.formattedMessage;
+
           if (mtgData.imageUrl) {
             await activeSocket.sendMessage(groupJid, {
               image: { url: mtgData.imageUrl },
-              caption: mtgData.formattedMessage
+              caption: fullMessage
             });
           } else {
-            await activeSocket.sendMessage(groupJid, { text: mtgData.formattedMessage });
+            await activeSocket.sendMessage(groupJid, { text: fullMessage });
           }
           sentCount++;
           await delay(3000);
         } catch (err) {
           console.error(`[Cron] Erro ao enviar MTG Arena para grupo ${groupJid}:`, err.message);
+        }
+      }
+
+      sentSet.add(normId);
+    }
+  }
+
+  // 5. Apenas a ÚLTIMA matéria oficial do Counter-Strike 2
+  const cs2Articles = await fetchCs2News();
+  if (cs2Articles.length > 0) {
+    const latestCs2 = cs2Articles[0];
+    const normId = normalizeUrl(latestCs2.url || latestCs2.id);
+
+    if (!sentSet.has(normId)) {
+      console.log(`[Cron] Nova atualização do CS2 detectada: ${latestCs2.title}`);
+      const cs2Data = await fetchCs2PatchSummary(latestCs2.url);
+
+      for (const groupJid of config.allowedGroups) {
+        try {
+          const gHeader = config.groupNames?.[groupJid] ? `👥 *[ ${config.groupNames[groupJid].toUpperCase()} ]*\n\n` : '';
+          const fullMessage = gHeader + cs2Data.formattedMessage;
+
+          if (cs2Data.imageUrl) {
+            await activeSocket.sendMessage(groupJid, {
+              image: { url: cs2Data.imageUrl },
+              caption: fullMessage
+            });
+          } else {
+            await activeSocket.sendMessage(groupJid, { text: fullMessage });
+          }
+          sentCount++;
+          await delay(3000);
+        } catch (err) {
+          console.error(`[Cron] Erro ao enviar CS2 para grupo ${groupJid}:`, err.message);
         }
       }
 
@@ -243,7 +291,7 @@ export async function checkAndSendUpdates() {
 
 export function startCronService(sock) {
   activeSocket = sock;
-  console.log('[Cron] Monitoramento iniciado (LoL, TFT, Valorant, MTG Arena e ARAM Desordem).');
+  console.log('[Cron] Monitoramento iniciado (LoL, TFT, Valorant, MTG Arena, CS2 e ARAM Desordem).');
 
   seedInitialArticles();
 

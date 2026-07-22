@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Bot - LoL, TFT, VALORANT & MTG Arena</title>
+  <title>Dashboard Bot - LoL, TFT, VALORANT, MTG & CS2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
       --gold-accent: #f39c12;
       --val-red: #ff4655;
       --mtg-purple: #9b59b6;
+      --cs2-orange: #de9b35;
       --text-main: #f0f4f8;
       --text-muted: #94a3b8;
       --success-green: #10b981;
@@ -113,7 +114,7 @@
     .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.3rem; }
     .stat-value { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
 
-    .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; }
+    .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 1rem; }
     @media (max-width: 768px) { .btn-group { grid-template-columns: 1fr; } }
 
     .btn {
@@ -131,7 +132,10 @@
     .btn-mtg { background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.2)); border-color: rgba(155, 89, 182, 0.4); }
     .btn-mtg:hover { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 
-    .btn-gold { background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(211, 84, 0, 0.2)); border-color: rgba(243, 156, 18, 0.4); grid-column: span 4; margin-top: 0.4rem; }
+    .btn-cs2 { background: linear-gradient(135deg, rgba(222, 155, 53, 0.2), rgba(180, 110, 20, 0.2)); border-color: rgba(222, 155, 53, 0.4); }
+    .btn-cs2:hover { background: linear-gradient(135deg, #de9b35, #b87b1e); }
+
+    .btn-gold { background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(211, 84, 0, 0.2)); border-color: rgba(243, 156, 18, 0.4); grid-column: span 3; margin-top: 0.4rem; }
     @media (max-width: 768px) { .btn-gold { grid-column: span 1; } }
     .btn-gold:hover { background: linear-gradient(135deg, #f39c12, #e67e22); }
 
@@ -191,7 +195,7 @@
       <div class="logo-area">
         <div class="logo-icon"><i class="fa-solid fa-gamepad"></i></div>
         <div>
-          <h1>Bot Patch Notes LoL, TFT, VALORANT & MTG</h1>
+          <h1>Bot Patch Notes LoL, TFT, VALORANT, MTG & CS2</h1>
           <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais & Tradução PT-BR</div>
         </div>
       </div>
@@ -228,8 +232,8 @@
             <div class="stat-value" style="color: var(--val-red);">13.01</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">MTG Arena Patch</div>
-            <div class="stat-value" style="color: var(--mtg-purple);">2026.61.30</div>
+            <div class="stat-label">CS2 Patch</div>
+            <div class="stat-value" style="color: var(--cs2-orange);">20/07/2026</div>
           </div>
         </div>
 
@@ -241,6 +245,7 @@
             <button class="btn" onclick="triggerTest('tft')"><i class="fa-solid fa-dice"></i> Testar TFT</button>
             <button class="btn btn-val" onclick="triggerTest('valorant')"><i class="fa-solid fa-crosshair"></i> Testar !vava</button>
             <button class="btn btn-mtg" onclick="triggerTest('mtg')"><i class="fa-solid fa-hat-wizard"></i> Testar !mtg (Beta)</button>
+            <button class="btn btn-cs2" onclick="triggerTest('cs2')"><i class="fa-solid fa-gun"></i> Testar !cs2 (Beta)</button>
             <button class="btn btn-gold" onclick="triggerCron()"><i class="fa-solid fa-paper-plane"></i> Disparar Transmissão para Grupos</button>
           </div>
         </div>
@@ -253,7 +258,7 @@
       
       <div class="wa-preview-container" id="waPreviewBox">
         <div class="wa-bubble" id="waBubbleContent">
-📌 <b>Clique em um dos botões de teste acima</b> (Testar LoL, !ad, TFT, !vava ou !mtg) para gerar a prévia visual formatada com a imagem infográfico de Destaques e o link completo no rodapé!
+📌 <b>Clique em um dos botões de teste acima</b> (Testar LoL, !ad, TFT, !vava, !mtg ou !cs2) para gerar a prévia visual formatada com a imagem infográfico de Destaques e o link completo no rodapé!
         </div>
       </div>
     </div>
@@ -275,6 +280,7 @@
         <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
           • <b>!iniciar</b>: Autoriza o grupo com mensagem de boas-vindas.<br>
           • <b>!patch / !lol</b>: Infográfico de Destaques + Mudanças no LoL + Link Oficial.<br>
+          • <b>!cs2</b>: Notas do Counter-Strike 2 por data <i>(Beta — Pode conter bugs)</i> + Link Oficial.<br>
           • <b>!mtg / !magic</b>: Notas do MTG Arena <i>(Beta — Pode conter bugs)</i> + Link Oficial.<br>
           • <b>!vava / !valorant</b>: Infográfico + Agentes, Armas e Bugs do VALORANT + Link Oficial.<br>
           • <b>!ad</b>: Exclusivo para o modo <b>ARAM: DESORDEM</b> + Link Oficial.<br>

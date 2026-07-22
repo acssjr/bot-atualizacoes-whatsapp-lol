@@ -4,8 +4,8 @@ import { Server } from 'socket.io';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
-import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews, getNextAndCurrentPatch } from './services/riotScraper.js';
-import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary, fetchMtgPatchSummary } from './utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, fetchMtgNews, fetchCs2News, getNextAndCurrentPatch } from './services/riotScraper.js';
+import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary, fetchMtgPatchSummary, fetchCs2PatchSummary } from './utils/patchFormatter.js';
 import { runManualCronCheck } from './services/cronService.js';
 
 const app = express();
@@ -191,6 +191,14 @@ app.post('/api/preview/mtg', async (req, res) => {
       imageUrl: ''
     });
   }
+});
+
+app.post('/api/preview/cs2', async (req, res) => {
+  const cs2Data = await fetchCs2PatchSummary();
+  res.json({
+    formattedMessage: cs2Data.formattedMessage || '',
+    imageUrl: cs2Data.imageUrl || ''
+  });
 });
 
 app.post('/api/trigger-cron', async (req, res) => {

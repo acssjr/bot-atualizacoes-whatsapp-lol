@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { cleanPlayfulText } from './patchCurator.js';
-import { fetchMtgNews } from '../services/riotScraper.js';
+import { fetchMtgNews, fetchCs2News } from '../services/riotScraper.js';
 import { translateTextToPtBr } from '../services/translator.js';
 
 /**
@@ -602,6 +602,82 @@ export async function fetchMtgPatchSummary(targetUrl = '') {
       formattedMessage: `🃏 *NOTAS DA ATUALIZAÇÃO DO MAGIC: THE GATHERING ARENA* (Beta — Pode conter bugs)\n\n🔗 *Confira as notas completas no site oficial:* ${targetUrl}`,
       imageUrl: '',
       url: targetUrl
+    };
+  }
+}
+
+/**
+ * Converte e formata as notas de atualização do Counter-Strike 2 (CS2) em PT-BR separadas por data.
+ *
+ * @param {string} targetUrl 
+ * @returns {Promise<{ formattedMessage: string, imageUrl: string, url: string }>}
+ */
+export async function fetchCs2PatchSummary(targetUrl = '') {
+  try {
+    const articles = await fetchCs2News();
+    if (articles.length === 0) {
+      return {
+        formattedMessage: `🔫 *COUNTER-STRIKE 2 - NOTAS DE ATUALIZAÇÃO* (Beta — Pode conter bugs)\n\nConfira as atualizações no site oficial do CS2!\n\n🔗 *Confira as notas completas no site oficial:* https://www.counter-strike.net/news/updates`,
+        imageUrl: '',
+        url: 'https://www.counter-strike.net/news/updates'
+      };
+    }
+
+    const latest = articles[0];
+
+    // Limpeza de tags BBCode do Steam
+    let parsedText = latest.rawContents
+      .replace(/\[\*\]\[p\]/gi, '\n  • ')
+      .replace(/\[\*\]/gi, '\n  • ')
+      .replace(/\[\/p\]/gi, '')
+      .replace(/\[p\]/gi, '\n')
+      .replace(/\\\[ (.*?) \\\]/gi, '\n\n🔹 *$1*\n')
+      .replace(/\[ (.*?) \]/gi, '\n\n🔹 *$1*\n')
+      .replace(/\[b\](.*?)\[\/b\]/gi, '*$1*')
+      .replace(/\[i\](.*?)\[\/i\]/gi, '_$1_')
+      .replace(/\[list\]/gi, '')
+      .replace(/\[\/list\]/gi, '')
+      .replace(/\[\/\*\]/gi, '')
+      .replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '$2')
+      .replace(/\\/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    const rawLines = parsedText.split('\n').map(l => l.trim()).filter(Boolean);
+    const translatedLines = [];
+
+    for (const line of rawLines) {
+      if (line.startsWith('🔹') || line.startsWith('*')) {
+        translatedLines.push(`\n${line}`);
+      } else if (line.startsWith('•')) {
+        const bulletContent = line.replace(/^•\s*/, '');
+        const translated = await translateTextToPtBr(bulletContent);
+        translatedLines.push(`  • ${translated}`);
+      } else {
+        const translated = await translateTextToPtBr(line);
+        translatedLines.push(translated);
+      }
+    }
+
+    const finalBody = translatedLines.join('\n\n');
+
+    let msg = `🔫 *COUNTER-STRIKE 2 - NOTAS DE ATUALIZAÇÃO* (Beta — Pode conter bugs)\n\n` +
+              `📅 *DATA DA ATUALIZAÇÃO: ${latest.formattedDate.toUpperCase()}*\n` +
+              `📜 *${cleanPlayfulText(latest.title).toUpperCase()}*\n\n` +
+              `${finalBody}\n\n` +
+              `🔗 *Confira as notas completas no site oficial:* https://www.counter-strike.net/news/updates`;
+
+    return {
+      formattedMessage: msg,
+      imageUrl: '',
+      url: latest.url || 'https://www.counter-strike.net/news/updates'
+    };
+  } catch (err) {
+    console.error('[PatchFormatter] Erro ao raspar CS2:', err.message);
+    return {
+      formattedMessage: `🔫 *COUNTER-STRIKE 2 - NOTAS DE ATUALIZAÇÃO* (Beta — Pode conter bugs)\n\n🔗 *Confira as notas completas no site oficial:* https://www.counter-strike.net/news/updates`,
+      imageUrl: '',
+      url: 'https://www.counter-strike.net/news/updates'
     };
   }
 }
