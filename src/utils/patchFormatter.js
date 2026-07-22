@@ -463,7 +463,7 @@ export async function fetchValorantPatchSummary(patchUrl) {
 
 /**
  * Raspa e converte notas de patch do Magic: The Gathering Arena (mtgarena-support.wizards.com)
- * com tradução automática de alta precisão para PT-BR.
+ * com separação limpa de sub-tópicos, tradução automática de alta precisão para PT-BR e espaçamento ideal.
  *
  * @param {string} targetUrl 
  * @returns {Promise<{ formattedMessage: string, imageUrl: string, url: string }>}
@@ -493,18 +493,18 @@ export async function fetchMtgPatchSummary(targetUrl = '') {
       }
     });
 
-    const rawHighlights = [];
-    const rawBugFixes = [];
-    const rawGeneralChanges = [];
+    const highlights = [];
+    const bugFixes = [];
+    const generalChanges = [];
 
     let currentSection = '';
 
-    $('h1, h2, h3, h4, p, ul li').each((i, el) => {
+    $('h1, h2, h3, h4, ul').each((i, el) => {
       const tag = $(el).prop('tagName').toLowerCase();
       const text = cleanPlayfulText($(el).text().trim());
       if (!text) return;
 
-      if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4') {
+      if (tag.startsWith('h')) {
         const tLower = text.toLowerCase();
         if (tLower.includes('highlight') || tLower.includes('destaques') || tLower.includes('feature')) {
           currentSection = 'highlights';
@@ -513,36 +513,80 @@ export async function fetchMtgPatchSummary(targetUrl = '') {
         } else {
           currentSection = 'general';
         }
-      } else if (tag === 'li' || tag === 'p') {
-        if (text.length > 4) {
-          if (currentSection === 'highlights') {
-            rawHighlights.push(text);
-          } else if (currentSection === 'bugs') {
-            rawBugFixes.push(text);
-          } else if (currentSection === 'general') {
-            rawGeneralChanges.push(text);
+      } else if (tag === 'ul' && currentSection) {
+        if ($(el).parents('ul').length > 0) return;
+
+        $(el).children('li').each((j, li) => {
+          const directText = $(li).clone().children('ul').remove().end().text().trim();
+          const subUl = $(li).children('ul');
+
+          if (directText && directText.length > 3) {
+            const cleanDirect = cleanPlayfulText(directText);
+            
+            if (currentSection === 'highlights') {
+              highlights.push({ header: cleanDirect, items: [] });
+            } else if (currentSection === 'bugs') {
+              bugFixes.push(cleanDirect);
+            } else {
+              generalChanges.push(cleanDirect);
+            }
           }
-        }
+
+          if (subUl.length > 0) {
+            subUl.find('li').each((k, subLi) => {
+              const subText = cleanPlayfulText($(subLi).text().trim());
+              if (subText && subText.length > 3) {
+                if (currentSection === 'highlights') {
+                  if (highlights.length > 0) {
+                    highlights[highlights.length - 1].items.push(subText);
+                  } else {
+                    highlights.push({ header: 'Novidades', items: [subText] });
+                  }
+                } else if (currentSection === 'bugs') {
+                  bugFixes.push(subText);
+                } else {
+                  generalChanges.push(subText);
+                }
+              }
+            });
+          }
+        });
       }
     });
 
-    // Tradução dos marcadores para PT-BR em paralelo
-    const translatedHighlights = await Promise.all(rawHighlights.slice(0, 8).map(t => translateTextToPtBr(t)));
-    const translatedGeneral = await Promise.all(rawGeneralChanges.slice(0, 8).map(t => translateTextToPtBr(t)));
-    const translatedBugs = await Promise.all(rawBugFixes.slice(0, 8).map(t => translateTextToPtBr(t)));
-
     let msg = `🃏 *${cleanTitle}* (Beta — Pode conter bugs)\n\n`;
 
-    if (translatedHighlights.length > 0) {
-      msg += `✨ *DESTAQUES DA ATUALIZAÇÃO:*\n\n` + translatedHighlights.map(t => `• ${t}`).join('\n\n') + `\n\n`;
+    if (highlights.length > 0) {
+      msg += `✨ *DESTAQUES DA ATUALIZAÇÃO:*\n\n`;
+      for (const group of highlights) {
+        const translatedHeader = await translateTextToPtBr(group.header);
+        msg += `🔹 *${translatedHeader.toUpperCase()}*\n`;
+
+        if (group.items.length > 0) {
+          for (const item of group.items) {
+            const translatedItem = await translateTextToPtBr(item);
+            msg += `    • ${translatedItem}\n\n`;
+          }
+        } else {
+          msg += `\n`;
+        }
+      }
     }
 
-    if (translatedGeneral.length > 0 && translatedHighlights.length === 0) {
-      msg += `📜 *ALTERAÇÕES & NOVIDADES:*\n\n` + translatedGeneral.map(t => `• ${t}`).join('\n\n') + `\n\n`;
+    if (generalChanges.length > 0 && highlights.length === 0) {
+      msg += `📜 *ALTERAÇÕES & NOVIDADES:*\n\n`;
+      for (const item of generalChanges.slice(0, 8)) {
+        const translatedItem = await translateTextToPtBr(item);
+        msg += `• ${translatedItem}\n\n`;
+      }
     }
 
-    if (translatedBugs.length > 0) {
-      msg += `🐛 *CORREÇÕES DE BUGS:*\n\n` + translatedBugs.map(t => `• ${t}`).join('\n\n') + `\n\n`;
+    if (bugFixes.length > 0) {
+      msg += `🐛 *CORREÇÕES DE BUGS:*\n\n`;
+      for (const bug of bugFixes.slice(0, 8)) {
+        const translatedBug = await translateTextToPtBr(bug);
+        msg += `• ${translatedBug}\n\n`;
+      }
     }
 
     msg += `🔗 *Confira as notas completas no site oficial:* ${targetArticle.url}`;
