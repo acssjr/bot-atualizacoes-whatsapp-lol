@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
-import { fetchRiotNews, fetchTftNews } from './riotScraper.js';
-import { fetchFullPatchSummary } from '../utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews } from './riotScraper.js';
+import { fetchFullPatchSummary, fetchValorantPatchSummary } from '../utils/patchFormatter.js';
 
 const CONFIG_FILE = path.resolve('config.json');
 const STATE_FILE = path.resolve('state.json');
@@ -45,7 +45,7 @@ export async function checkAndSendUpdates() {
     return 'WhatsApp não conectado no momento.';
   }
 
-  console.log('[Cron] Verificando notas de atualização oficiais (LoL & TFT)...');
+  console.log('[Cron] Verificando notas de atualização oficiais (LoL, TFT e Valorant)...');
   const state = loadState();
   const sentSet = new Set(state.sentArticles || []);
   let sentCount = 0;
@@ -104,6 +104,33 @@ export async function checkAndSendUpdates() {
     }
   }
 
+  // 3. Notícias Oficiais do VALORANT
+  const valArticles = await fetchValorantNews();
+  for (const article of valArticles) {
+    if (!sentSet.has(article.id)) {
+      const valData = await fetchValorantPatchSummary(article.url);
+
+      for (const groupJid of config.allowedGroups) {
+        try {
+          if (valData.imageUrl) {
+            await activeSocket.sendMessage(groupJid, {
+              image: { url: valData.imageUrl },
+              caption: valData.formattedMessage
+            });
+          } else {
+            await activeSocket.sendMessage(groupJid, { text: valData.formattedMessage });
+          }
+          sentCount++;
+          await delay(3000);
+        } catch (err) {
+          console.error(`[Cron] Erro ao enviar VALORANT para grupo ${groupJid}:`, err.message);
+        }
+      }
+
+      sentSet.add(article.id);
+    }
+  }
+
   state.sentArticles = Array.from(sentSet);
   saveState(state);
 
@@ -112,7 +139,7 @@ export async function checkAndSendUpdates() {
 
 export function startCronService(sock) {
   activeSocket = sock;
-  console.log('[Cron] Monitoramento iniciado (Oficial LoL, TFT e ARAM Desordem).');
+  console.log('[Cron] Monitoramento iniciado (LoL, TFT, Valorant e ARAM Desordem).');
 
   cron.schedule('*/30 * * * *', async () => {
     try {

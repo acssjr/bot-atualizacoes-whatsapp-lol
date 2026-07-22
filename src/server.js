@@ -4,8 +4,8 @@ import { Server } from 'socket.io';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
-import { fetchRiotNews, fetchTftNews, getNextAndCurrentPatch } from './services/riotScraper.js';
-import { fetchFullPatchSummary, fetchAramDesordemSummary } from './utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, getNextAndCurrentPatch } from './services/riotScraper.js';
+import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary } from './utils/patchFormatter.js';
 import { runManualCronCheck } from './services/cronService.js';
 
 const app = express();
@@ -117,6 +117,23 @@ app.post('/api/preview/tft', async (req, res) => {
   } else {
     res.json({
       formattedMessage: `🎲 *TFT - NOTAS DE ATUALIZAÇÃO*\n\n📜 *PATCH DO TFT*\n\n🔹 *Aprimoramentos*: Balanceamento nos Augments.\n🔹 *Unidades*: Rebalanceamento de taxas de aparição.`,
+      imageUrl: ''
+    });
+  }
+});
+
+app.post('/api/preview/valorant', async (req, res) => {
+  const valArticles = await fetchValorantNews();
+
+  if (valArticles.length > 0) {
+    const valData = await fetchValorantPatchSummary(valArticles[0].url);
+    res.json({
+      formattedMessage: valData.formattedMessage || '',
+      imageUrl: valData.imageUrl || ''
+    });
+  } else {
+    res.json({
+      formattedMessage: `🎯 *VALORANT - NOTAS DE ATUALIZAÇÃO*\n\nConfira as atualizações no site oficial do VALORANT!`,
       imageUrl: ''
     });
   }

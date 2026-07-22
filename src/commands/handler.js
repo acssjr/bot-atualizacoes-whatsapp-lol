@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { fetchRiotNews, fetchTftNews, getNextAndCurrentPatch } from '../services/riotScraper.js';
-import { fetchFullPatchSummary, fetchAramDesordemSummary } from '../utils/patchFormatter.js';
+import { fetchRiotNews, fetchTftNews, fetchValorantNews, getNextAndCurrentPatch } from '../services/riotScraper.js';
+import { fetchFullPatchSummary, fetchAramDesordemSummary, fetchValorantPatchSummary } from '../utils/patchFormatter.js';
 import { updateAllowedGroups } from '../services/whatsapp.js';
 
 const STATE_FILE = path.resolve('state.json');
@@ -31,7 +31,7 @@ export async function handleCommand(text, sock, remoteJid) {
       }
       const welcomeMsg = `🤖 *BOT DE PATCH NOTES ATIVADO!*\n\n` +
                          `✅ *Grupo Autorizado com Sucesso!*\n` +
-                         `Este grupo agora receberá automaticamente todas as notas de atualização oficiais do LoL, TFT e ARAM Desordem com infográficos de destaques.\n\n` +
+                         `Este grupo agora receberá automaticamente todas as notas de atualização oficiais do LoL, TFT, VALORANT e ARAM Desordem com infográficos de destaques.\n\n` +
                          `📌 *Como usar:*\n` +
                          `Digite *!ajuda* para ver a lista de comandos disponíveis a qualquer momento.`;
       await sock.sendMessage(remoteJid, { text: welcomeMsg });
@@ -42,6 +42,7 @@ export async function handleCommand(text, sock, remoteJid) {
     case '!help': {
       const helpMsg = `🤖 *COMANDOS DISPONÍVEIS*\n\n` +
                       `• *!patch* ou *!lol*: Notas da atualização do League of Legends com Infográfico e link oficial.\n` +
+                      `• *!vava* ou *!valorant*: Notas de atualização do VALORANT (Agentes, Armas e Bugs).\n` +
                       `• *!ad*: Mudanças exclusivas do modo *ARAM: DESORDEM*.\n` +
                       `• *!tft*: Notas de atualização do Teamfight Tactics com Infográfico e link oficial.\n` +
                       `• *!agenda* ou *!proximo*: Próximas datas de atualizações em PT-BR.\n` +
@@ -72,6 +73,28 @@ export async function handleCommand(text, sock, remoteJid) {
         await sock.sendMessage(remoteJid, {
           text: `⚔️ *PATCH ATUAL DO LOL: ${current.patch}*\n\nData de Lançamento: *${current.formattedDate}*`
         });
+      }
+      break;
+    }
+
+    case '!vava':
+    case '!valorant': {
+      await sock.sendMessage(remoteJid, { text: '🎯 *Buscando notas do VALORANT com infográfico de Destaques...*' });
+      const valArticles = await fetchValorantNews();
+
+      if (valArticles.length > 0) {
+        const valData = await fetchValorantPatchSummary(valArticles[0].url);
+        
+        if (valData.imageUrl) {
+          await sock.sendMessage(remoteJid, {
+            image: { url: valData.imageUrl },
+            caption: valData.formattedMessage
+          });
+        } else {
+          await sock.sendMessage(remoteJid, { text: valData.formattedMessage });
+        }
+      } else {
+        await sock.sendMessage(remoteJid, { text: `🎯 *VALORANT - NOTAS DE ATUALIZAÇÃO*\n\nAcompanhe as notas do VALORANT no site oficial!` });
       }
       break;
     }
@@ -113,7 +136,7 @@ export async function handleCommand(text, sock, remoteJid) {
     case '!agenda':
     case '!proximo': {
       const { current, next } = getNextAndCurrentPatch();
-      const msg = `📅 *CALENDÁRIO DE ATUALIZAÇÕES (LoL & TFT)* 📅\n\n` +
+      const msg = `📅 *CALENDÁRIO DE ATUALIZAÇÕES (LoL, TFT & VALORANT)* 📅\n\n` +
                   `✅ *Patch Atual:* ${current.patch}\n` +
                   `📆 *Lançamento:* ${current.formattedDate}\n\n` +
                   `🚀 *Próximo Patch:* ${next.patch}\n` +

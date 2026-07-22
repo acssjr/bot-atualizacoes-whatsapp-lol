@@ -26,7 +26,6 @@ export async function fetchFullPatchSummary(patchUrl) {
     // 1. Extração da Imagem de Destaques da Atualização (Infográfico para LoL ou TFT)
     let highlightsImageUrl = '';
 
-    // Procura a imagem sob a seção DESTAQUES DA ATUALIZAÇÃO
     container.find('h2').each((i, h2) => {
       if ($(h2).text().trim().toLowerCase().includes('destaques')) {
         const imgEl = $(h2).nextUntil('h2', 'figure, a, div, p').find('img').first();
@@ -181,7 +180,6 @@ export async function fetchFullPatchSummary(patchUrl) {
       msg += `🐛 *CORREÇÕES DE BUGS:*\n\n` + bugFixes.slice(0, 8).join('\n\n') + `\n\n`;
     }
 
-    // Anexa SEMPRE o link da matéria completa no final
     msg += `🔗 *Confira as notas completas no site oficial:* ${patchUrl}`;
 
     return {
@@ -297,6 +295,165 @@ export async function fetchAramDesordemSummary(patchUrl) {
     const fallback = `💥 *ARAM: DESORDEM*\n\nConfira as atualizações e aprimoramentos do modo ARAM Desordem no jogo!\n\n🔗 *Confira as notas completas no site oficial:* ${patchUrl}`;
     return {
       formattedMessage: fallback,
+      url: patchUrl
+    };
+  }
+}
+
+/**
+ * Raspa a página de notas de patch oficial do VALORANT (playvalorant.com)
+ *
+ * @param {string} patchUrl 
+ * @returns {Promise<{ formattedMessage: string, imageUrl: string, url: string }>}
+ */
+export async function fetchValorantPatchSummary(patchUrl) {
+  try {
+    const { data } = await axios.get(patchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 15000
+    });
+
+    const $ = cheerio.load(data);
+    const title = $('h1').first().text().trim().replace(/TODAS AS PLATAFORMAS.*$/gi, '').trim() || 'Notas da Atualização do VALORANT';
+
+    // 1. Extração da Imagem do Header do Valorant
+    let imageUrl = '';
+    const imgMatches = data.match(/https:\/\/cmsassets\.rgpub\.io\/sanity\/images\/dsfx7636\/news_live\/[a-f0-9]+-1920x1080\.jpg\?accountingTag=VAL/gi);
+    if (imgMatches && imgMatches.length > 0) {
+      imageUrl = imgMatches[0];
+    } else {
+      const fallbackMatches = data.match(/https:\/\/(cmsassets\.rgpub\.io|images\.contentstack\.io)[^"'\s>\\]+/gi);
+      if (fallbackMatches && fallbackMatches.length > 0) {
+        imageUrl = fallbackMatches.find(m => m.includes('news_live') && m.includes('1920x1080')) || fallbackMatches[0];
+      }
+    }
+
+    // 2. Extração das Seções do Valorant
+    const agentBlocks = [];
+    const weaponBlocks = [];
+    const systemBlocks = [];
+    const bugFixes = [];
+
+    let currentSection = '';
+
+    $('h2, ul').each((i, el) => {
+      const tag = $(el).prop('tagName').toLowerCase();
+      const text = $(el).text().trim();
+
+      if (tag === 'h2') {
+        const tLower = text.toLowerCase();
+        if (tLower.includes('agente')) currentSection = 'agentes';
+        else if (tLower.includes('arma')) currentSection = 'armas';
+        else if (tLower.includes('comportamento') || tLower.includes('sistema') || tLower.includes('social')) currentSection = 'sistemas';
+        else if (tLower.includes('bug') || tLower.includes('correções')) currentSection = 'bugs';
+        else currentSection = '';
+      } else if (tag === 'ul' && currentSection) {
+        if ($(el).parents('ul').length > 0) return;
+
+        $(el).children('li').each((j, li) => {
+          const entityName = $(li).children('span, font, strong').first().text().trim() || 
+                             $(li).clone().children('ul').remove().end().text().trim();
+
+          const subUl = $(li).children('ul');
+          if (subUl.length > 0) {
+            subUl.children('li').each((k, subLi) => {
+              const skillName = $(subLi).children('span, font, strong').first().text().trim() || '';
+              const desc = $(subLi).find('li').text().trim() || $(subLi).clone().children('ul').remove().end().text().trim();
+
+              const cleanAgent = cleanPlayfulText(entityName);
+              const cleanSkill = cleanPlayfulText(skillName);
+              let cleanDesc = cleanPlayfulText(desc);
+
+              if (cleanSkill && cleanDesc.startsWith(cleanSkill)) {
+                cleanDesc = cleanDesc.replace(cleanSkill, '').trim();
+              }
+
+              if (cleanAgent && (cleanSkill || cleanDesc)) {
+                if (currentSection === 'agentes') {
+                  agentBlocks.push({ entity: cleanAgent, skill: cleanSkill, desc: cleanDesc });
+                } else if (currentSection === 'armas') {
+                  weaponBlocks.push({ entity: cleanAgent, skill: cleanSkill, desc: cleanDesc });
+                }
+              }
+            });
+          } else {
+            const lineClean = cleanPlayfulText($(li).text().trim());
+            if (lineClean && lineClean.length > 5 && !lineClean.includes('Confira os detalhes')) {
+              if (currentSection === 'bugs') {
+                bugFixes.push(`• ${lineClean}`);
+              } else if (currentSection === 'sistemas') {
+                systemBlocks.push(`• ${lineClean}`);
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // 3. Montagem com Espaçamento Limpo
+    let msg = `🎯 *${cleanPlayfulText(title).toUpperCase()}*\n\n`;
+
+    if (agentBlocks.length > 0) {
+      msg += `👥 *ATUALIZAÇÕES DOS AGENTES:*\n\n`;
+      let lastEntity = '';
+      agentBlocks.forEach(b => {
+        if (b.entity !== lastEntity) {
+          if (lastEntity !== '') msg += `\n`;
+          msg += `🔹 *${b.entity.toUpperCase()}*\n`;
+          lastEntity = b.entity;
+        }
+        if (b.skill) {
+          msg += `  🎯 *${b.skill}*\n`;
+        }
+        if (b.desc) {
+          msg += `    • ${b.desc}\n`;
+        }
+      });
+      msg += `\n`;
+    }
+
+    if (weaponBlocks.length > 0) {
+      msg += `🔫 *ATUALIZAÇÕES DE ARMAS:*\n\n`;
+      let lastEntity = '';
+      weaponBlocks.forEach(b => {
+        if (b.entity !== lastEntity) {
+          if (lastEntity !== '') msg += `\n`;
+          msg += `🔹 *${b.entity.toUpperCase()}*\n`;
+          lastEntity = b.entity;
+        }
+        if (b.skill) {
+          msg += `  🎯 *${b.skill}*\n`;
+        }
+        if (b.desc) {
+          msg += `    • ${b.desc}\n`;
+        }
+      });
+      msg += `\n`;
+    }
+
+    if (systemBlocks.length > 0) {
+      msg += `🌀 *SISTEMAS & COMPORTAMENTO:*\n\n` + systemBlocks.join('\n\n') + `\n\n`;
+    }
+
+    if (bugFixes.length > 0) {
+      msg += `🐛 *CORREÇÕES DE BUGS:*\n\n` + bugFixes.slice(0, 8).join('\n\n') + `\n\n`;
+    }
+
+    msg += `🔗 *Confira as notas completas no site oficial:* ${patchUrl}`;
+
+    return {
+      formattedMessage: msg,
+      imageUrl,
+      url: patchUrl
+    };
+  } catch (err) {
+    console.error('[PatchFormatter] Erro ao raspar VALORANT:', err.message);
+    return {
+      formattedMessage: `🎯 *NOTAS DA ATUALIZAÇÃO DO VALORANT*\n\n🔗 *Confira as notas completas no site oficial:* ${patchUrl}`,
+      imageUrl: '',
       url: patchUrl
     };
   }
