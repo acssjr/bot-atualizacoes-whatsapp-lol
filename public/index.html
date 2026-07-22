@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Bot - LoL & TFT Patch Notes WhatsApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --card-bg: rgba(22, 28, 45, 0.7);
+      --card-border: rgba(0, 210, 255, 0.15);
+      --primary-cyan: #00d2ff;
+      --primary-blue: #3a7bd5;
+      --gold-accent: #f39c12;
+      --text-main: #f0f4f8;
+      --text-muted: #94a3b8;
+      --success-green: #10b981;
+      --error-red: #ef4444;
+      --warning-amber: #f59e0b;
+      --wa-bg: #0b141a;
+      --wa-bubble: #202c33;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top right, #111827, var(--bg-dark));
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 2rem; padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo-area { display: flex; align-items: center; gap: 1rem; }
+    .logo-icon {
+      width: 50px; height: 50px;
+      background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: #fff; box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 700;
+      background: linear-gradient(to right, #ffffff, var(--primary-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle { font-size: 0.9rem; color: var(--text-muted); }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.2rem; border-radius: 30px;
+      font-weight: 600; font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--warning-amber); box-shadow: 0 0 10px var(--warning-amber);
+      animation: pulse 1.5s infinite;
+    }
+    .dot.connected { background: var(--success-green); box-shadow: 0 0 10px var(--success-green); }
+    .dot.disconnected { background: var(--error-red); box-shadow: 0 0 10px var(--error-red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 1.5rem; backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 600;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+      color: var(--primary-cyan);
+    }
+
+    .qr-container {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 250px; text-align: center;
+      background: rgba(10, 14, 23, 0.6); border-radius: 12px; padding: 1.5rem;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+    .qr-img { max-width: 220px; border-radius: 12px; background: white; padding: 10px; }
+    .connected-box { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--success-green); }
+    .connected-box i { font-size: 4rem; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .stat-box { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); padding: 1rem; border-radius: 10px; }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.3rem; }
+    .stat-value { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+
+    .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 1rem; }
+    @media (max-width: 768px) { .btn-group { grid-template-columns: 1fr; } }
+
+    .btn {
+      background: linear-gradient(135deg, rgba(0, 210, 255, 0.15), rgba(58, 123, 213, 0.15));
+      border: 1px solid rgba(0, 210, 255, 0.3); color: #fff; padding: 0.9rem 0.5rem;
+      border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      transition: all 0.2s ease; font-family: 'Inter', sans-serif;
+    }
+    .btn:hover { background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue)); transform: translateY(-2px); }
+    .btn-gold { background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(211, 84, 0, 0.2)); border-color: rgba(243, 156, 18, 0.4); grid-column: span 3; margin-top: 0.4rem; }
+    @media (max-width: 768px) { .btn-gold { grid-column: span 1; } }
+    .btn-gold:hover { background: linear-gradient(135deg, #f39c12, #e67e22); }
+
+    .wa-preview-container {
+      background: var(--wa-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.2rem;
+      min-height: 250px;
+      max-height: 480px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+
+    .wa-bubble {
+      background: var(--wa-bubble);
+      color: #e9edef;
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      max-width: 95%;
+      box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .wa-bubble img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .wa-bubble b { color: #53bdeb; font-weight: 700; }
+    .wa-time { font-size: 0.7rem; color: #8696a0; text-align: right; margin-top: 0.4rem; }
+
+    .group-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.8rem 1rem; background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-area">
+        <div class="logo-icon"><i class="fa-solid fa-gamepad"></i></div>
+        <div>
+          <h1>Bot Patch Notes LoL & TFT</h1>
+          <div class="subtitle">Simulação Visual em Tempo Real com Infográficos Oficiais da Riot</div>
+        </div>
+      </div>
+      <div class="status-badge" id="statusBadge">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Conectando...</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- QR Code -->
+      <div class="card">
+        <div class="card-title"><i class="fa-brands fa-whatsapp"></i> Conexão WhatsApp</div>
+        <div class="qr-container" id="qrWrapper">
+          <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--primary-cyan); margin-bottom: 1rem;"></i>
+          <p style="color: var(--text-muted);">Aguardando geração do QR Code...</p>
+        </div>
+      </div>
+
+      <!-- Estado e Testes -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-calendar-days"></i> Estado dos Patches & Testes</div>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-label">LoL - Patch Atual</div>
+            <div class="stat-value" id="lolPatch">26.14</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Próximo Patch</div>
+            <div class="stat-value" id="nextLolPatch" style="color: var(--primary-cyan);">26.15 (Quarta, 29/07)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">TFT - Patch Atual</div>
+            <div class="stat-value" id="tftSet">17.7</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">ARAM: Desordem</div>
+            <div class="stat-value" style="color: var(--gold-accent);">Ativo</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.2rem;">
+          <div class="card-title" style="font-size: 1rem;"><i class="fa-solid fa-eye"></i> Simular Prévia Visual da Mensagem</div>
+          <div class="btn-group">
+            <button class="btn" onclick="triggerTest('lol')"><i class="fa-solid fa-bolt"></i> Testar LoL</button>
+            <button class="btn" onclick="triggerTest('ad')"><i class="fa-solid fa-fire"></i> Testar !ad</button>
+            <button class="btn" onclick="triggerTest('tft')"><i class="fa-solid fa-dice"></i> Testar TFT</button>
+            <button class="btn btn-gold" onclick="triggerCron()"><i class="fa-solid fa-paper-plane"></i> Disparar Transmissão para Grupos</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prévia Visual do Balão do WhatsApp -->
+    <div class="card">
+      <div class="card-title"><i class="fa-brands fa-whatsapp" style="color: #25d366;"></i> Prévia Visual da Mensagem (Como vai chegar no WhatsApp)</div>
+      
+      <div class="wa-preview-container" id="waPreviewBox">
+        <div class="wa-bubble" id="waBubbleContent">
+📌 <b>Clique em um dos botões de teste acima</b> (Testar LoL, !ad ou TFT) para gerar a prévia visual formatada com a imagem infográfico de Destaques e o link completo no rodapé!
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Grupos -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-users-gear"></i> Grupos Autorizados</div>
+        <div id="groupsList">
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Nenhum grupo cadastrado. Adicione o bot no grupo e envie <code>!iniciar</code> para autorizar.
+          </p>
+        </div>
+      </div>
+
+      <!-- Comandos -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-terminal"></i> Comandos Ativos</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
+          • <b>!iniciar</b>: Autoriza o grupo com mensagem de boas-vindas.<br>
+          • <b>!patch / !lol</b>: Infográfico de Destaques + Mudanças no LoL + Link Oficial.<br>
+          • <b>!ad</b>: Exclusivo para o modo <b>ARAM: DESORDEM</b> + Link Oficial.<br>
+          • <b>!tft</b>: Infográfico de Destaques + Mudanças no TFT + Link Oficial.<br>
+          • <b>!agenda</b>: Datas em PT-BR com dia da semana.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const qrWrapper = document.getElementById('qrWrapper');
+    const waBubbleContent = document.getElementById('waBubbleContent');
+    const groupsList = document.getElementById('groupsList');
+
+    function renderWaMarkdown(rawText) {
+      const text = typeof rawText === 'string' ? rawText : (rawText?.formattedMessage || String(rawText || ''));
+      let html = text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*(.*?)\*/g, '<b>$1</b>')
+        .replace(/_(.*?)_/g, '<i>$1</i>')
+        .replace(/~(.*?)~/g, '<del>$1</del>');
+      return html;
+    }
+
+    socket.on('status', (data) => {
+      statusText.innerText = data.message;
+      if (data.connected) {
+        statusDot.className = 'dot connected';
+        qrWrapper.innerHTML = `
+          <div class="connected-box">
+            <i class="fa-solid fa-circle-check"></i>
+            <h3>WhatsApp Conectado!</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Sessão ativa e sincronizada.</p>
+          </div>
+        `;
+      } else {
+        statusDot.className = 'dot';
+      }
+    });
+
+    socket.on('qr', (qrBase64) => {
+      statusDot.className = 'dot';
+      statusText.innerText = 'Aguardando Leitura do QR Code';
+      qrWrapper.innerHTML = `
+        <img src="${qrBase64}" alt="WhatsApp QR Code" class="qr-img" />
+        <p style="margin-top: 1rem; font-weight: 600; color: var(--primary-cyan);">Escaneie com seu WhatsApp secundário</p>
+      `;
+    });
+
+    socket.on('state', (state) => {
+      if (state.lol) {
+        document.getElementById('lolPatch').innerText = state.lol.currentPatch || '26.14';
+        document.getElementById('nextLolPatch').innerText = `${state.lol.nextPatch} (${state.lol.nextPatchDate || 'Quarta, 29/07'})`;
+      }
+      if (state.tft) {
+        document.getElementById('tftSet').innerText = state.tft.currentPatch || '17.7';
+      }
+      if (state.allowedGroups && state.allowedGroups.length > 0) {
+        groupsList.innerHTML = state.allowedGroups.map(gid => {
+          const gName = (state.groupNames && state.groupNames[gid]) ? state.groupNames[gid] : 'Grupo WhatsApp';
+          return `
+            <div class="group-item">
+              <div>
+                <i class="fa-solid fa-users" style="color: var(--primary-cyan); margin-right: 0.5rem;"></i>
+                <b style="font-size: 0.95rem; color: var(--text-main);">${gName}</b>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">ID: ${gid}</div>
+              </div>
+              <span style="color: var(--success-green); font-size: 0.8rem; font-weight: 600;">Autorizado</span>
+            </div>
+          `;
+        }).join('');
+      }
+    });
+
+    async function triggerTest(type) {
+      waBubbleContent.innerHTML = `⏳ <i>Carregando e buscando infográfico para ${type.toUpperCase()}...</i>`;
+      try {
+        const res = await fetch(`/api/preview/${type}`, { method: 'POST' });
+        const data = await res.json();
+        
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        let contentHtml = '';
+        if (data.imageUrl) {
+          contentHtml += `<img src="${data.imageUrl}" alt="Destaques da Atualização" />`;
+        }
+        contentHtml += renderWaMarkdown(data.formattedMessage) + `<div class="wa-time">${time}</div>`;
+        
+        waBubbleContent.innerHTML = contentHtml;
+      } catch (err) {
+        waBubbleContent.innerHTML = `❌ Erro ao gerar prévia: ${err.message}`;
+      }
+    }
+
+    async function triggerCron() {
+      waBubbleContent.innerHTML = `⏳ <i>Disparando transmissão para os grupos...</i>`;
+      try {
+        const res = await fetch('/api/trigger-cron', { method: 'POST' });
+        const data = await res.json();
+        waBubbleContent.innerHTML = `📢 <b>STATUS DA TRANSMISSÃO:</b><br>${data.message}`;
+      } catch (err) {
+        waBubbleContent.innerHTML = `❌ Erro ao disparar transmissão: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

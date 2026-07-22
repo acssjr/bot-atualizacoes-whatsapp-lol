@@ -1,0 +1,17 @@
+{
+  "prefix": "!",
+  "checkIntervalMinutes": 30,
+  "autoNotifyGroups": true,
+  "allowedGroups": [
+    "120363411755409710@g.us",
+    "120363345563304840@g.us",
+    "120363321396660608@g.us"
+  ],
+  "enableCosmeticFilter": true,
+  "language": "pt-BR",
+  "groupNames": {
+    "120363411755409710@g.us": "Teste",
+    "120363345563304840@g.us": "Bar do Tonho 2.0 ",
+    "120363321396660608@g.us": "💎 Mentoria 123 Passei"
+  }
+}
